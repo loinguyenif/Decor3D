@@ -1,5 +1,6 @@
 package com.example.ui
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -15,6 +16,7 @@ import com.example.data.ProductCatalog
 import com.example.network.Content
 import com.example.network.GeminiApiClient
 import com.example.network.Part
+import com.example.network.ExternalDatabaseClient
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -28,7 +30,61 @@ enum class Screen {
     Bookings
 }
 
-class DecorViewModel(private val repository: DecorRepository) : ViewModel() {
+class DecorViewModel(
+    private val repository: DecorRepository,
+    private val context: Context
+) : ViewModel() {
+
+    private val prefs = context.getSharedPreferences("decor3d_settings", Context.MODE_PRIVATE)
+
+    var externalServerUrl by mutableStateOf(prefs.getString("external_server_url", "https://your-server-api.com/api") ?: "https://your-server-api.com/api")
+    var syncStatusMessage by mutableStateOf("")
+    var isSyncing by mutableStateOf(false)
+
+    fun updateExternalServerUrl(url: String) {
+        externalServerUrl = url
+        prefs.edit().putString("external_server_url", url).apply()
+    }
+
+    fun syncBookingsToServer() {
+        if (externalServerUrl.isBlank() || isSyncing) return
+        viewModelScope.launch {
+            isSyncing = true
+            syncStatusMessage = "Đang kết nối & truyền đơn đặt lịch lên DB Server..."
+            val currentList = bookings.value
+            val result = ExternalDatabaseClient.uploadBookings(externalServerUrl, currentList)
+            result.onSuccess { msg ->
+                syncStatusMessage = msg
+            }
+            result.onFailure { error ->
+                syncStatusMessage = "Có lỗi xảy ra: ${error.localizedMessage}"
+            }
+            isSyncing = false
+        }
+    }
+
+    fun syncBookingsFromServer() {
+        if (externalServerUrl.isBlank() || isSyncing) return
+        viewModelScope.launch {
+            isSyncing = true
+            syncStatusMessage = "Đang nạp thông tin lịch hẹn từ DB Server..."
+            val result = ExternalDatabaseClient.downloadBookings(externalServerUrl)
+            result.onSuccess { remoteBookings ->
+                if (remoteBookings.isNotEmpty()) {
+                    remoteBookings.forEach { booking ->
+                        repository.insertBooking(booking)
+                    }
+                    syncStatusMessage = "Thành công: Đã import ${remoteBookings.size} lịch hẹn mới về máy!"
+                } else {
+                    syncStatusMessage = "Kết nối máy chủ OK. Không tìm thấy lịch hẹn khác cần đồng bộ."
+                }
+            }
+            result.onFailure { error ->
+                syncStatusMessage = "Thất bại: ${error.localizedMessage}"
+            }
+            isSyncing = false
+        }
+    }
 
     // Primary UI Screens View state
     var currentScreen by mutableStateOf(Screen.Catalog)

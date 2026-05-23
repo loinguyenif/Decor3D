@@ -69,6 +69,135 @@ fun BookingsScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ) {
+            var isConfigExpanded by remember { mutableStateOf(false) }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { isConfigExpanded = !isConfigExpanded },
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.CloudSync,
+                                contentDescription = "Sync",
+                                tint = Color(0xFFC2410C),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = "Kết Nối Database Server Khác",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "Đồng bộ đơn lịch hẹn ra API máy chủ từ xa",
+                                    fontSize = 11.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = if (isConfigExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = "Expand",
+                            tint = Color.Gray
+                        )
+                    }
+
+                    if (isConfigExpanded) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "Nhập URL API Endpoint của Server bạn (hỗ trợ POST /bookings/sync để đưa dữ liệu lên và GET /bookings để lấy dữ liệu về lưu vào Room SQLite).",
+                            fontSize = 11.sp,
+                            color = Color.DarkGray,
+                            lineHeight = 15.sp,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = viewModel.externalServerUrl,
+                            onValueChange = { viewModel.updateExternalServerUrl(it) },
+                            label = { Text("Server API URL Base (REST Endpoint)", fontSize = 11.sp) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
+                                focusedBorderColor = Color(0xFFC2410C)
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { viewModel.syncBookingsToServer() },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
+                                shape = RoundedCornerShape(8.dp),
+                                enabled = !viewModel.isSyncing
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.CloudUpload, "Upload", modifier = Modifier.size(15.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Gửi lên Server", fontSize = 11.sp)
+                                }
+                            }
+
+                            Button(
+                                onClick = { viewModel.syncBookingsFromServer() },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC2410C)),
+                                shape = RoundedCornerShape(8.dp),
+                                enabled = !viewModel.isSyncing
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.CloudDownload, "Download", modifier = Modifier.size(15.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Tải từ Server", fontSize = 11.sp)
+                                }
+                            }
+                        }
+
+                        if (viewModel.syncStatusMessage.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color.LightGray.copy(alpha = 0.15f))
+                                    .padding(8.dp)
+                            ) {
+                                Text(
+                                    text = viewModel.syncStatusMessage,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
             if (bookingList.isEmpty()) {
                 Box(
                     modifier = Modifier

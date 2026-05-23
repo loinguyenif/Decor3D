@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
         val repository = DecorRepository(database.bookingDao(), database.chatMessageDao())
 
         // 2. ViewModel instantiation using Factory
-        val factory = DecorViewModelFactory(repository)
+        val factory = DecorViewModelFactory(repository, applicationContext)
         val viewModel: DecorViewModel by viewModels { factory }
 
         setContent {
@@ -64,11 +64,14 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-class DecorViewModelFactory(private val repository: DecorRepository) : ViewModelProvider.Factory {
+class DecorViewModelFactory(
+    private val repository: DecorRepository,
+    private val context: android.content.Context
+) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(DecorViewModel::class.java)) {
-            return DecorViewModel(repository) as T
+            return DecorViewModel(repository, context) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class representation: ${modelClass.name}")
     }
