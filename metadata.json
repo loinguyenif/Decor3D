@@ -1,0 +1,6 @@
+{
+  "name": "Decor3D",
+  "description": "Ứng dụng đặt hàng nội thất trực tuyến với tư vấn thiết kế AI và trình xem mẫu thiết kế 3D tương tác.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
